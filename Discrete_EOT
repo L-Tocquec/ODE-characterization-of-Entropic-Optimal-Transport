@@ -1,6 +1,7 @@
 #### All the functions needed for numerical experiments in discrete setting
 
-#### General setting, the feasible conditions are (A^t gamma + b = 0) and (gamma>0)
+#### General setting, feasible conditions: (A^tgamma+b=0) and (gamma>0)
+
 
 # The matrix used to describe the feasible conditions
 def matrix_OT(N, M):
@@ -109,6 +110,7 @@ def solve_dual_EOT(mu, nu, c, eps):
 
 #### Note that setting is different: the cost function is defined as c=(0 , alpha , ... ,alpha) 
 #### for alpha>0 and the feasible conditions are (< gamma , 1 > = beta) and (gamma>0) with beta>0
+
 
 def solution(alpha , beta , c , eps):
   sol = np.zeros(len(c))
