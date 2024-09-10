@@ -1,0 +1,96 @@
+### Functions needed to make experiments on the gaussian settings (i.e both measures are gaussian)
+
+### One dimensional case
+
+# Implement the explicit solution
+def sol(a,b,eps):
+  return (1+np.sqrt(1+16*a*b*eps**2))/(4*a)
+
+# Implement the Sinkhorn potential value
+def phi(a,b):
+  return(a**(-0.5)*b**(0.5))
+
+##################################################################################################
+
+def EOT_1D(a,b,eps):
+  """
+  input:
+        - a,b (float)     : positive variance of gaussian measures
+        - eps (float)     : regularization paramater, non-negative
+  output:
+        - eot_resc (float): value of the entropic optimal transport problem rescaled
+  """
+  tau = np.sqrt(1 + 16 * a * b * (eps**2))
+  eot = eps*(a + b - (8*a*b*eps)/(1+tau)) - 0.5 * np.log(1 - ((tau**2)-1)/((1+tau)**2))
+  eot_resc = eot / eps
+  return eot_resc
+
+##################################################################################################
+##################################################################################################
+
+### General dimension
+
+# Sinkhorn's iterations from our problem (not fixed yet...)
+def Sinkhorn(num_iter , A , B , eps , crit=0):
+  """
+  input:
+        - num_iter (int): maximum number of iterations
+        - A,B (np.array): two positive definite matrix representing the
+                          covariance matrices of two gaussians measures
+        - eps (float)   : regularization paramater, positive
+        - crit (float)  : parameter quantifying the difference between matrices
+                        at each iteration
+  output:
+        - F,G (np.array): two matrices solving the dual problem
+  """
+  d,p = A.shape
+  F = np.eye(d)#(1/(2 * eps)) * np.linalg.inv(A) + np.eye(d)
+  G = np.eye(d)#(1/(2 * eps)) * np.linalg.inv(B) + np.eye(d)
+
+  for n in range(num_iter):
+    old_F = F
+    F = np.linalg.inv(G) + (1/eps) * np.linalg.inv(A)
+    old_G = G
+    G = np.linalg.inv(F) + (1/eps) *  np.linalg.inv(B)
+    if (np.linalg.norm(F-old_F, np.inf) < crit) and (np.linalg.norm(G-old_G, np.inf) < crit):
+        return F,G
+
+  return F,G
+
+##################################################################################################
+
+def K_eps(A , F , eps):
+  return (1/eps) * (A @ F - (1/4)*np.eye(2))
+
+def L(F,K):
+  return (1/2) * ( F @ K +  np.transpose(K) @ F )
+
+def solve(M):
+  E_1 = np.array([[1 , 0] , [0 , 0]])
+  E_2 = np.array([[0 , 0] , [0 , 1]])
+  E_3 = np.array([[0 , 1] , [1 , 0]])
+  M_vector = M.flatten()
+  E1_vector = E_1.flatten()
+  E2_vector = E_2.flatten()
+  E3_vector = E_3.flatten()
+  A = np.vstack([E1_vector, E2_vector, E3_vector]).T
+  coefficients, _, _, _ = np.linalg.lstsq(A, M_vector, rcond=None)
+  alpha, beta, gamma = coefficients
+  return alpha , beta , gamma
+
+
+def construct_mat_L(K):
+  E_1 = np.array([[1 , 0] , [0 , 0]])
+  E_2 = np.array([[0 , 0] , [0 , 1]])
+  E_3 = np.array([[0 , 1] , [1 , 0]])
+  L_1 = L(E_1,K)
+  L_2 = L(E_2,K)
+  L_3 = L(E_3,K)
+  alpha_1 , beta_1 , gamma_1 = solve(L_1)
+  vec_1 = np.array([alpha_1,beta_1,gamma_1])
+  alpha_2 , beta_2 , gamma_2 = solve(L_2)
+  vec_2 = np.array([alpha_2,beta_2,gamma_2])
+  alpha_3 , beta_3 , gamma_3 = solve(L_3)
+  vec_3 = np.array([alpha_3,beta_3,gamma_3])
+  result_matrix = np.column_stack([vec_1, vec_2, vec_3])
+  return result_matrix
