@@ -1,0 +1,124 @@
+### Numerical experiments done when both measures are gaussian measures 
+
+### One dimensional case
+
+
+# Plot the convergence of phi/eps towards phi_0 when eps tends to +infty
+
+epsilon = np.linspace(1, 100, 100)
+a = random.uniform(0, 10)
+b = random.uniform(0, 10)
+print(a,b)
+y = []
+for eps in epsilon:
+  y.append(np.abs((sol(a,b,eps)/eps)-phi(a,b)))
+y = np.array(y)
+# Compute the rate of convergence
+coef_1 = np.log(np.abs((sol(a,b,10)/10)-phi(a,b)))
+coef_2 = np.log(np.abs((sol(a,b,50)/50)-phi(a,b)))
+coef_pente = ((coef_1 - coef_2) / (np.log(10) - np.log(50)))
+
+print("rate of decrease:",coef_pente)
+plt.xlabel("$\epsilon$")
+plt.plot(epsilon, y , label="$||F_\epsilon / \epsilon - F_0||$")
+plt.xscale("log")
+plt.yscale("log")
+plt.legend()
+
+##################################################################################################
+
+# Plot the the evolution of eot/eps in terms of eps
+
+epsilon = np.linspace(1, 300, 300)
+a = 4.94
+b = 0.42
+print("a=",a,"b=",b)
+ot = a + b - 2*np.sqrt(a*b)
+print("OT value", ot)
+
+y = [EOT_1D(a, b, eps) for eps in epsilon]
+plt.semilogx(epsilon , y , label="$EOT_\epsilon / \epsilon$")
+plt.xlabel("$\epsilon$")
+plt.axhline(ot, color='r', linestyle='--', label="OT")
+plt.legend()
+
+##################################################################################################
+##################################################################################################
+
+### General dimension
+
+
+# Plot the behavior of eigenvalues of K_eps depending on eps
+
+# Parameters
+A = np.array([[3, 2], [2, 5]])
+B = np.array([[6, 3], [3, 7]])
+epsilon = np.linspace(1,500,500)
+
+# Iteration to compute eigenvalues of K_eps
+eigval_total = []
+# count will indicate if all eigenvaleus are actually different from 0
+count = 0
+for eps in epsilon:
+  if eps%100 == 0:
+    print(eps)
+  F,_ = Sinkhorn(100 , A , B , eps , 10e-6)
+  K = K_eps(A , F , eps)
+  eigval , eigenvec = np.linalg.eig(K)
+  # Ensure none of the eigenvalues is null
+  if eigval.any() == 0 :
+    print("error")
+  else:
+    count += 1
+  eigval_total.append(eigval)
+# Ensure that all eigenvalues are different from 0 for each epsilon
+if count == len(epsilon):
+  print("all eigenvalues are different from 0")
+print("last eigenvalues for epsilon = 1000 : ", eigval_total[-1])
+for i in range(K.shape[0]):
+    lamb = [val[i] for val in eigval_total]
+    coef_1 = np.log(lamb[10])
+    coef_2 = np.log(lamb[50])
+    coef_pente = ((coef_1 - coef_2) / (np.log(10) - np.log(50)))
+    print("rate of decrease for", i+1,"-th eigenvalues: ",coef_pente)
+    line = plt.loglog(epsilon, lamb, label=f'$\lambda_{i+1}$')
+    color = line[0].get_color()
+
+plt.xlabel('$\epsilon$')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+##################################################################################################
+
+# Iteration to compute eigenvalues of Mat_L for each epsilon
+eigval_total = []
+# count will indicate if all eigenvalues are different from 0
+count = 0
+for eps in epsilon:
+  if eps%100 ==0:
+    print(eps)
+  F , _ = Sinkhorn(100 , A , B , eps , 10e-6)
+  K = K_eps(A , F , eps)
+  mat_L = construct_mat_L(K)
+  eigval , eigenvec = np.linalg.eig(mat_L)
+  eigval_total.append(eigval)
+  if eigval.any() == 0:
+    print("error")
+  else:
+    count +=1
+if count == len(epsilon):
+  print("all eigenvalues are different from 0")
+print("last eigenvalues for epsilon = 1000 : ", eigval_total[-1])
+for i in range(mat_L.shape[0]):
+    lamb = [val[i] for val in eigval_total]
+    line = plt.loglog(epsilon, lamb, label=f'$\lambda_{i+1}$')
+    coef_1 = np.log(lamb[10])
+    coef_2 = np.log(lamb[50])
+    coef_pente = ((coef_1 - coef_2) / (np.log(10) - np.log(50)))
+    print("rate of decrease for", i+1,"-th eigenvalues: ",coef_pente)
+    color = line[0].get_color()
+plt.xlabel('$\epsilon$')
+plt.grid(True)
+plt.legend()
+plt.show()
