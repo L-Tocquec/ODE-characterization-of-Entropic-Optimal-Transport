@@ -54,20 +54,20 @@ plt.show()
 
 
 ##################################################################################################
+
 #### Illustrate the convergence of thevalue of dual entropy-regularized optimal transport towards 
 #### the dual value of the original problem
 
+
 # Solve the true dual problem without regularization
+
 opti_dual = scipy.optimize.linprog(b, A_ub=np.transpose(A_t), b_ub=c, method='highs')
 psi_true = opti_dual.x
 true_value_dual = opti_dual.fun
 norm_psi = np.linalg.norm(psi_true)
-
-
 psi_values_all = []
 gamma_values_all = []
 value_primal_all = []
-
 # Loop over epsilon values and compute psi and value for each
 for eps in epsilon:
     psi, val = solve_dual_EOT(mu, nu, c, eps)
@@ -80,11 +80,9 @@ for eps in epsilon:
           kkt_diff = np.abs(gamma[i] - np.exp(eps * (np.dot(np.transpose(A_t)[i], psi) - c[i])))
           if kkt_diff > 1e-3:
               print(f"For epsilon = {eps}, index {i} is such that KKT conditions are not verified:" , kkt_diff)
-
 # Compute and plot norm of solutions and values of dual problem
 norm_pen_psi = []
 val_dual_pen = []
-
 for eps in epsilon:
     psi, value = solve_dual_EOT(mu, nu, c, eps)
     norm_pen_psi.append(np.linalg.norm(psi))
@@ -98,12 +96,11 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
+##################################################################################################
 
-
-
-#################################################################################################
 #### Note that setting is different: the cost function is defined as c=(0 , alpha , ... ,alpha) 
 #### for alpha>0 and the feasible conditions are (< gamma , 1 > = beta) and (gamma>0) with beta>0
+
 
 #### Plot the trajectory of <c,gamma_eps> and its bounds
 
@@ -122,11 +119,9 @@ for i in range(N*M):
     c[i] = 0
   else:
     c[i] = alpha
-
 print("A=" , A)
 print("b=" , b)
 print("c=" , c)
-
 R_1 = beta
 R_H = beta * np.log(N*M)
 delta = alpha * beta
@@ -136,11 +131,12 @@ print("R_H=",R_H)
 print("delta=",delta)
 print("eps*=" , cond)
 
+##################################################################################################
+
 # Find the optimal solution of OT
+
 opti_prim = scipy.optimize.linprog(c, A_eq=np.transpose(A), b_eq=b , bounds=(0, None))
 gamma_true = opti_prim.x
-
-
 upper_bound = []
 lower_bound = []
 values = []
@@ -152,7 +148,6 @@ for eps in epsilon:
   sol = solution(alpha,beta,c,eps)
   value = np.dot(c,sol)
   values.append(value)
-
   # Ensure that the bounds are respected
   if eps >= cond :
     if up_bd < value :
