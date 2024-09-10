@@ -2,6 +2,8 @@
 ##### solution and the value of the original optimal transport problem (element-wise and in norm 
 ##### for the solution)
 
+# General setting, feasible conditions: (A^tgamma+b=0) and (gamma>0) 
+
 
 # Solve the primal problem using linear programming
 opti_prim = scipy.optimize.linprog(c, A_eq=A_t, b_eq=-b, bounds = (0,None))
@@ -100,6 +102,9 @@ plt.show()
 
 
 #################################################################################################
+#### Note that setting is different: the cost function is defined as c=(0 , alpha , ... ,alpha) 
+#### for alpha>0 and the feasible conditions are (< gamma , 1 > = beta) and (gamma>0) with beta>0
+
 #### Plot the trajectory of <c,gamma_eps> and its bounds
 
 # Parameters
