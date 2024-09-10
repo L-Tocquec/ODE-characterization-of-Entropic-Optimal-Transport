@@ -1,0 +1,163 @@
+##### Illustrate the convergence of the entropy-regularized solution and value towards a 
+##### solution and the value of the original optimal transport problem (element-wise and in norm 
+##### for the solution)
+
+
+# Solve the primal problem using linear programming
+opti_prim = scipy.optimize.linprog(c, A_eq=A_t, b_eq=-b, bounds = (0,None))
+gamma_true = opti_prim.x
+print(gamma_true)
+true_value = opti_prim.fun
+
+# Initialize lists to store results
+gamma_values_all = []
+value_primal_all = []
+
+# Loop over epsilon values and compute gamma and value for each
+for eps in epsilon:
+    gamma, val = solve_EOT(mu, nu, c, eps)
+    gamma_values_all.append(gamma)
+    value_primal_all.append(val)
+
+# Plot convergence of gamma_epsilon to gamma_true
+for j in range(M*N):
+    gamma_values = [gamma[j] for gamma in gamma_values_all]
+    line = plt.semilogx(epsilon, gamma_values, label=f'$\gamma_\epsilon[{j+1}]$')
+    color = line[0].get_color()
+    plt.axhline(y=gamma_true[j], color=color, linestyle='--', label=f'$\gamma^*_{{{j+1}}}$')
+
+plt.xlabel('$\epsilon$')
+plt.legend(loc='upper right')
+plt.grid(True)
+plt.show()
+
+# Plot convergence of the values
+plt.semilogx(epsilon, value_primal_all, label='Primal value with regularization')
+plt.axhline(y=true_value, color='r', linestyle='--', label='True value of the primal')
+plt.xlabel('$\epsilon$')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Compute the norm and plot its convergence
+norm_gamma = np.linalg.norm(gamma_true)
+norm_pen_gamma = [np.linalg.norm(gamma) for gamma in gamma_values_all]
+
+plt.semilogx(epsilon, norm_pen_gamma, label='Norm of $\gamma_\epsilon$')
+plt.axhline(y=norm_gamma, color='g', linestyle='--', label='Norm of $\gamma^*$')
+plt.xlabel('$\epsilon$')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+##################################################################################################
+#### Illustrate the convergence of thevalue of dual entropy-regularized optimal transport towards 
+#### the dual value of the original problem
+
+# Solve the true dual problem without regularization
+opti_dual = scipy.optimize.linprog(b, A_ub=np.transpose(A_t), b_ub=c, method='highs')
+psi_true = opti_dual.x
+true_value_dual = opti_dual.fun
+norm_psi = np.linalg.norm(psi_true)
+
+
+psi_values_all = []
+gamma_values_all = []
+value_primal_all = []
+
+# Loop over epsilon values and compute psi and value for each
+for eps in epsilon:
+    psi, val = solve_dual_EOT(mu, nu, c, eps)
+    psi_values_all.append(psi)
+    value_primal_all.append(val)
+    gamma, _ = solve_EOT(mu, nu, c, eps)
+    gamma_values_all.append(gamma)
+    # Check KKT conditions
+    for i in range(N * M):
+          kkt_diff = np.abs(gamma[i] - np.exp(eps * (np.dot(np.transpose(A_t)[i], psi) - c[i])))
+          if kkt_diff > 1e-3:
+              print(f"For epsilon = {eps}, index {i} is such that KKT conditions are not verified:" , kkt_diff)
+
+# Compute and plot norm of solutions and values of dual problem
+norm_pen_psi = []
+val_dual_pen = []
+
+for eps in epsilon:
+    psi, value = solve_dual_EOT(mu, nu, c, eps)
+    norm_pen_psi.append(np.linalg.norm(psi))
+    val_dual_pen.append(value)
+
+# Plot convergence of the values
+plt.semilogx(epsilon, val_dual_pen, label='Dual value with regularization')
+plt.axhline(y=true_value_dual, color='r', linestyle='--', label='True value of the dual')
+plt.xlabel('$\epsilon$')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+
+
+#################################################################################################
+#### Plot the trajectory of <c,gamma_eps> and its bounds
+
+# Parameters
+M = 3
+N = 2
+epsilon = np.linspace(2 , 50 , 49)
+beta = 4
+alpha = 1
+A = np.ones((N*M,N+M))
+b = beta * np.ones(M+N)
+# Build c from alpha
+c = np.zeros(N*M)
+for i in range(N*M):
+  if i == 0:
+    c[i] = 0
+  else:
+    c[i] = alpha
+
+print("A=" , A)
+print("b=" , b)
+print("c=" , c)
+
+R_1 = beta
+R_H = beta * np.log(N*M)
+delta = alpha * beta
+cond = (R_1 + R_H) / delta
+print("R_1=",R_1)
+print("R_H=",R_H)
+print("delta=",delta)
+print("eps*=" , cond)
+
+# Find the optimal solution of OT
+opti_prim = scipy.optimize.linprog(c, A_eq=np.transpose(A), b_eq=b , bounds=(0, None))
+gamma_true = opti_prim.x
+
+
+upper_bound = []
+lower_bound = []
+values = []
+condition = False
+for eps in epsilon:
+  up_bd , low_bd = bounds(R_1 , R_H , delta , eps)
+  upper_bound.append(up_bd + np.dot(c,gamma_true))
+  lower_bound.append(low_bd)
+  sol = solution(alpha,beta,c,eps)
+  value = np.dot(c,sol)
+  values.append(value)
+
+  # Ensure that the bounds are respected
+  if eps >= cond :
+    if up_bd < value :
+      print("for eps=" , eps , "error 1")
+    if low_bd > value :
+      print("for eps=" , eps , "error 2")
+plt.loglog(epsilon, values, label='$<c, \gamma_\epsilon >$')
+plt.loglog(epsilon, upper_bound, label='upper_bound')
+plt.loglog(epsilon, lower_bound, label='lower_bound')
+plt.axvline(x=cond, color='r', linestyle='--', label='condition')
+plt.xlabel('$\epsilon$')
+plt.legend()
+plt.show()
