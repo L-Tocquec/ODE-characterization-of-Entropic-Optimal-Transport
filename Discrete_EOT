@@ -1,0 +1,60 @@
+# Discrete setting
+
+# The matrix used to describe the feasible conditions
+def matrix_OT(N, M):
+    # The upper part of the matrix: for each i, sum of x_ij  on j must be equal to mu_i
+    upper_block = np.kron(np.eye(N), np.ones(M))  # (N x NM)
+
+    # The lower part of the matrix: for each j, sum of x_ij on i must be equal to nu_j
+    lower_block = np.kron(np.ones(N), np.eye(M))  # (M x NM)
+
+    # Combine the two parts
+    final_matrix = np.vstack([upper_block, lower_block])
+
+    return final_matrix
+
+# Vector that contains marginal constraints
+def constraint(mu,nu):
+  b = - np.concatenate((mu, nu))
+  return b
+
+
+
+def solve_EOT(mu, nu, c, eps):
+    '''
+    Function to solve the dual LP problem with penalty using cvxpy
+    Input:
+        - mu: (numpy array) vector representing the first measure (length N)
+        - nu: (numpy array) vector representing the second measure (length M)
+        - c: (numpy array) cost vector of shape (NM,)
+        - eps: (float) penalty parameter
+    Output:
+        - gamma: (numpy array) solution of EOT (NM,)
+        - value: (float) value of the objective function at the solution
+    '''
+    # Define dimensions
+    N = len(mu)
+    M = len(nu)
+
+    # Construct constraints and matrix
+    b = constraint(mu, nu)
+    A_t = matrix_OT(N, M)
+
+    # Define the variable
+    x = cp.Variable(N * M, nonneg=True)
+
+    # Define the objective function
+    # Modified objective function to be DQCP compliant
+    loss = eps * cp.sum(cp.multiply(c, x)) - cp.sum(cp.entr(x))
+
+    # Define the problem
+    prob = cp.Problem(cp.Minimize(loss), [A_t @ x == -b])
+    prob.solve()
+
+    # Extract the solution
+    gamma = x.value
+
+    # The value of the objective function at the solution
+    value = prob.value/eps
+
+    return gamma, value
